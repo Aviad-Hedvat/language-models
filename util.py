@@ -2,13 +2,13 @@ from keras.preprocessing.text import text_to_word_sequence
 from keras.layers import Layer
 import keras.utils
 import keras.backend as K
-
+from keras.utils import pad_sequences
 from nltk import FreqDist
 import numpy as np
 
-from keras.preprocessing import sequence
+#from keras.preprocessing import sequence
 
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 
 from collections import defaultdict, Counter, OrderedDict
 
@@ -16,7 +16,6 @@ import os
 
 """
 Various utility functions for loading data and performing other common operations.
-
 Some of this code is based on Based on https://github.com/ChunML/seq2seq/blob/master/seq2seq_utils.py
 """
 
@@ -28,13 +27,11 @@ DIR = os.path.dirname(os.path.realpath(__file__))
 def load_words(source, vocab_size=10000, limit=None, max_length=None):
     """
     Loads sentences (or other natural language sequences) from a text file. Assumes a single sequence per line.
-
     :param source: Text file to read from
     :param vocab_size: Maximum number of words to retain. If there are more unique words than this, the most frequent
         "vocab_size" words are used, and the rest are replaced by the <UNK> symbol
     :param limit: If not None, only the first "character_limit" characters are read. Useful for debugging on large corpora.
     :param max_length: If not none, any sentence longer containing more words than this is removed.
-
     :return: (1) A list of lists of integers representing the encoded sentences, (3) a dict from strings to ints
         representing the mapping from words to indices (2) a list of strings representing the mapping from indices to
         words.
@@ -81,7 +78,6 @@ def load_words(source, vocab_size=10000, limit=None, max_length=None):
 def load_characters(source, length=None, limit=None,):
     """
     Reads a text file as a stream of characters. The stream is cut into chunks of equal size
-
     :param source: The text file to read
     :param length: The size of the chunks. If None, the stream is delimited by line-ends and the resulting sequence will
         have variable length
@@ -142,7 +138,6 @@ def batch_pad(x, batch_size, min_length=3, add_eos=False, extra_padding=0):
     """
     Takes a list of integer sequences, sorts them by lengths and pads them so that sentences in each batch have the
     same length.
-
     :param x:
     :return: A list of tensors containing equal-length sequences padded to the length of the longest sequence in the batch
     """
@@ -166,7 +161,7 @@ def batch_pad(x, batch_size, min_length=3, add_eos=False, extra_padding=0):
         mlen = max([len(l) + extra_padding for l in batch])
 
         if mlen >= min_length:
-            batch = sequence.pad_sequences(batch, maxlen=mlen, dtype='int32', padding='post', truncating='post')
+            batch = pad_sequences(batch, maxlen=mlen, dtype='int32', padding='post', truncating='post')
 
             batches.append(batch)
 
@@ -202,7 +197,6 @@ def chunks(l, n):
 def sample(preds, temperature=1.0):
     """
     Sample an index from a probability vector
-
     :param preds:
     :param temperature:
     :return:
@@ -225,7 +219,6 @@ def sample(preds, temperature=1.0):
 def sample_logits(preds, temperature=1.0):
     """
     Sample an index from a logit vector.
-
     :param preds:
     :param temperature:
     :return:
@@ -247,11 +240,9 @@ class KLLayer(Layer):
     """
     Identity transform layer that adds KL divergence
     to the final model loss.
-
     During training, call
             K.set_value(kl_layer.weight, new_value)
     to scale the KL loss term.
-
     based on:
     http://tiao.io/posts/implementing-variational-autoencoders-in-keras-beyond-the-quickstart-tutorial/
     """
